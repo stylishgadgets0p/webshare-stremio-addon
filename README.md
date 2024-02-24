@@ -11,8 +11,11 @@ Feel free to open up issues if you find any issues.
 
 ## How can I use it?
 
-**This addon is not released yet.** Since the basic functionality works great I expect to release it
-soon.
+Go to https://20317bf4c6c6-webshare-stremio-addon.baby-beamup.club/, enter your Webshare.cz login
+details and install.
+
+This addon is not yet submitted to the community addon catalog, that will be done after some testing
+period.
 
 ## Development
 
