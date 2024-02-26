@@ -6,7 +6,7 @@ const { findShowInfo } = require("./meta")
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
 	"id": "community.coffei.webshare",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"catalogs": [],
 	"resources": ["stream"],
 	"types": [
