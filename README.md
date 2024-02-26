@@ -22,6 +22,8 @@ period.
 Follow the usual steps:
 
 - install dependencies - `npm install`
+- create file `config/keys.js` from template `config/keys.js.sample` and fill in TMDB API key. This
+  is not required but some features might require the API key to be present and working.
 - install the addon in local stremio instance - `npm start -- --install`
 
 See [Stremion Addon SDK](https://github.com/Stremio/stremio-addon-sdk) for more information.

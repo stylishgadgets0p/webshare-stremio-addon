@@ -5,12 +5,56 @@ const formencode = require('form-urlencoded')
 const { filesize } = require('filesize')
 
 const headers = { content_type: 'application/x-www-form-urlencoded; charset=UTF-8', accept: 'text/xml; charset=UTF-8' }
-const getQuery = (info) => {
+
+const getQueries = (info) => {
+    const names = Array.from(new Set([info.name, info.originalName].filter(n => n)))
     if (info.type == 'series') {
-        return `${info.name} S${info.series.padStart(2, '0')}E${info.episode.padStart(2, '0')}`
+        return names.flatMap(name => {
+            const series = info.series.padStart(2, '0')
+            const episode = info.episode.padStart(2, '0')
+            return [
+                `${name} S${series}E${episode}`,
+                `${name} ${series}x${episode}`
+            ]
+        })
     } else {
-        return info.name
+        return names
     }
+}
+
+const search = async (query, token) => {
+    console.log('Searching', query)
+    const data = formencode({ what: query, category: 'video', limit: 100, wst: token })
+    const resp = await needle('post', 'https://webshare.cz/api/search/', data, { headers })
+    const files = resp.body.children.filter(el => el.name == 'file')
+    const queryWords = query.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").split(' ')
+
+    return files.map(el => {
+        const ident = el.children.find(el => el.name == 'ident').value
+        const size = el.children.find(el => el.name == 'size').value
+        const posVotes = el.children.find(el => el.name == 'positive_votes').value
+        const negVotes = el.children.find(el => el.name == 'negative_votes').value
+        const name = el.children.find(el => el.name == 'name').value
+        const protected = el.children.find(el => el.name == 'password')
+        return {
+            ident,
+            name,
+            size,
+            posVotes,
+            negVotes,
+            protected: protected && protected.value == '1'
+        }
+    })
+        // exclude protected files
+        .filter(item => !item.protected)
+        // compute match factor, that will be used to sort results later
+        .map(item => {
+            const simpleName = item.name.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "")
+            const matching = queryWords.filter(word => simpleName.includes(word))
+            return { ...item, match: matching.length / queryWords.length }
+        })
+        // only include files that actually match the query - contain at least one keyword
+        .filter(item => item.match > 0)
 }
 const webshare = {
     login: async (user, password) => {
@@ -33,33 +77,32 @@ const webshare = {
     // search localized names too
     // we could also combine multiple different queries to get better results
     search: async (showInfo, token) => {
-        const query = getQuery(showInfo)
-        console.log('Searching', showInfo.type, query)
-        const data = formencode({ what: query, category: 'video', sort: 'largest', limit: '20', wst: token })
-        const resp = await needle('post', 'https://webshare.cz/api/search/', data, headers)
-        const files = resp.body.children.filter(el => el.name == 'file')
-        return files.filter(el => {
-            const protected = el.children.find(el => el.name == 'password')
-            return protected == null || protected.value == '0'
-        }).map(el => {
-            const ident = el.children.find(el => el.name == 'ident').value
-            const size = filesize(el.children.find(el => el.name == 'size').value)
-            const posVotes = el.children.find(el => el.name == 'positive_votes').value
-            const negVotes = el.children.find(el => el.name == 'negative_votes').value
-            const name = el.children.find(el => el.name == 'name').value
-            return {
-                ident,
-                description: name,
-                name: `💾 ${size} 👍 ${posVotes} 👎 ${negVotes}`
+        const queries = getQueries(showInfo)
+        let results = await Promise.all(queries.map(query => search(query, token)))
+        results = results.flatMap(items => items)
+
+        results.sort((a, b) => {
+            if (a.match != b.match) {
+                return b.match - a.match
+            } else if (a.posVotes != b.posVotes) {
+                return b.posVotes - a.posVotes
+            } else {
+                return b.size - a.size
             }
         })
+
+        return results.map(item => ({
+            ident: item.ident,
+            description: item.name,
+            name: `💾 ${filesize(item.size)} 👍 ${item.posVotes} 👎 ${item.negVotes}`
+        })).slice(0, 20)
     },
 
     addUrlToStreams: (streams, token) => {
         return Promise.all(streams.map(async stream => {
             const { ident, ...restStream } = stream
             const data = formencode({ ident, download_type: 'video_stream', force_https: 1, wst: token })
-            const resp = await needle('post', 'https://webshare.cz/api/file_link/', data, headers)
+            const resp = await needle('post', 'https://webshare.cz/api/file_link/', data, { headers })
             const status = resp.body.children.find(el => el.name == 'status').value
             if (status == 'OK') {
                 const url = resp.body.children.find(el => el.name == 'link').value
