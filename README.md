@@ -27,3 +27,6 @@ Follow the usual steps:
 - install the addon in local stremio instance - `npm start -- --install`
 
 See [Stremion Addon SDK](https://github.com/Stremio/stremio-addon-sdk) for more information.
+
+Code is formatted with [Prettier](https://prettier.io/docs/install). Use `npm run format` to format
+the code or `npm run check-formatting` to check for any formatting issues.

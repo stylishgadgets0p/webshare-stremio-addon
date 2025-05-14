@@ -26,7 +26,9 @@ function extractLanguage(filename) {
   };
 
   // Split language codes into short (2-3 chars) and long codes for more precise matching
-  const langCodes = Object.keys(languageMap).sort((a, b) => b.length - a.length);
+  const langCodes = Object.keys(languageMap).sort(
+    (a, b) => b.length - a.length,
+  );
 
   // First check for subtitle patterns - these take priority
   const subtitleKeywords = ["tit", "titulky", "subs", "sub"];
@@ -39,15 +41,21 @@ function extractLanguage(filename) {
     // Subtitle or audio keywords with language (e.g., titulky CZ, CZ titulky)
     subtitleRegex: new RegExp(
       `(?:${allKeywords.join("|")})[^a-zA-Z0-9]+(${langCodes.join("|")})(?:[^a-zA-Z0-9]|$)|(?:^|[^a-zA-Z0-9])(${langCodes.join(
-        "|"
+        "|",
       )})[^a-zA-Z0-9]+(?:${allKeywords.join("|")})(?:[^a-zA-Z0-9]|$)`,
-      "gi"
+      "gi",
     ),
     // Concatenated format (e.g., CZSub, CZaudio) - only match if at start
-    concatenatedRegex: new RegExp(`(?:^|[^a-zA-Z0-9])(${langCodes.join("|")})(?:${allKeywords.join("|")})(?:[^a-zA-Z0-9]|$)`, "gi"),
+    concatenatedRegex: new RegExp(
+      `(?:^|[^a-zA-Z0-9])(${langCodes.join("|")})(?:${allKeywords.join("|")})(?:[^a-zA-Z0-9]|$)`,
+      "gi",
+    ),
     // Must be entirely isolated (surrounded by spaces, punctuation, or string boundaries)
     // [^a-zA-Z0-9] caused some false positives
-    generalRegex: new RegExp(`(?:^|[\\s.,;:!?\\-_\\[\\]()])(${langCodes.join("|")})(?=[\\s.,;:!?\\-_\\[\\](]|$)`, "gi"),
+    generalRegex: new RegExp(
+      `(?:^|[\\s.,;:!?\\-_\\[\\]()])(${langCodes.join("|")})(?=[\\s.,;:!?\\-_\\[\\](]|$)`,
+      "gi",
+    ),
   };
 
   // Store all found languages
@@ -64,7 +72,9 @@ function extractLanguage(filename) {
           // If this is the subtitle/audio pattern (index 0), check for subtitle keyword
           if (patternName === "subtitleRegex") {
             const matchStr = match[0].toLowerCase();
-            const hasSubtitleKeyword = subtitleKeywords.some((kw) => matchStr.includes(kw));
+            const hasSubtitleKeyword = subtitleKeywords.some((kw) =>
+              matchStr.includes(kw),
+            );
             if (hasSubtitleKeyword) {
               foundLanguages.add(`${languageMap[lang]} titulky`);
               subtitleLangs.add(languageMap[lang]);
@@ -81,7 +91,9 @@ function extractLanguage(filename) {
   }
 
   // Return all found languages joined by "|" or null if none found
-  return foundLanguages.size > 0 ? Array.from(foundLanguages).sort().join("|") : null;
+  return foundLanguages.size > 0
+    ? Array.from(foundLanguages).sort().join("|")
+    : null;
 }
 
 function extractSeasonEpisode(filename) {
@@ -93,15 +105,22 @@ function extractSeasonEpisode(filename) {
   // Handle episode-only and part-based formats with unified regex
   // Matches: e01, ep 01, episode 01, #01, part 1, pt 1, part.1, pt.1, etc.
   // Now handles any non-alphanumeric delimiter between prefix and number
-  const episodeOrPartRegex = /(?:^|[^a-zA-Z0-9])(?:(?:e|ep|episode|#|part|pt)[^a-zA-Z0-9]*(\d{1,3}))(?:[^a-zA-Z0-9]|$)/i;
+  const episodeOrPartRegex =
+    /(?:^|[^a-zA-Z0-9])(?:(?:e|ep|episode|#|part|pt)[^a-zA-Z0-9]*(\d{1,3}))(?:[^a-zA-Z0-9]|$)/i;
 
   // Try each regex in order of specificity
   let match = filename.match(standardRegex);
   if (match) {
     if (match[1] && match[2]) {
-      return { season: parseInt(match[1], 10), episode: parseInt(match[2], 10) };
+      return {
+        season: parseInt(match[1], 10),
+        episode: parseInt(match[2], 10),
+      };
     } else if (match[3] && match[4]) {
-      return { season: parseInt(match[3], 10), episode: parseInt(match[4], 10) };
+      return {
+        season: parseInt(match[3], 10),
+        episode: parseInt(match[4], 10),
+      };
     }
   }
 
