@@ -4,7 +4,8 @@
 	"description": "Simple webshare.cz search and streaming.",
 	"scripts": {
 		"start": "node src/server.js",
-		"dev": "nodemon src/server.js --dev"
+		"dev": "nodemon src/server.js --dev",
+    "test": "jest"
 	},
 	"dependencies": {
 		"express": "^5.1.0",
@@ -17,5 +18,8 @@
 		"sha1": "^1.1.1",
 		"stremio-addon-sdk": "1.6.x",
 		"string-similarity": "^4.0.4"
+	},
+	"devDependencies": {
+		"jest": "^29.7.0"
 	}
 }
