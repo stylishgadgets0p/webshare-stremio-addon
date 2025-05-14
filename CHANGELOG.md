@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+Fix streams not showing up in Web and TizenOS versions of Stremio.
+
 ## 0.3.0
 
 Thanks to [@youchi1](https://github.com/youchi1) for these wonderful improvements.
