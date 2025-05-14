@@ -58,9 +58,9 @@ const search = async (query, token) => {
     return {
       ident,
       name,
-      size,
       posVotes,
       negVotes,
+      size: parseInt(size, 10),
       language: extractLanguage(name),
       parsedTitle: ptt.parse(name),
       SeasonEpisode: extractSeasonEpisode(name),
