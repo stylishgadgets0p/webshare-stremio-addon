@@ -9,7 +9,7 @@ const dev = process.argv.includes("--dev") == 1 ? "Dev" : "";
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
   id: "community.coffei.webshare" + dev,
-  version: "0.2.0",
+  version: "0.3.1",
   catalogs: [],
   resources: ["stream"],
   types: ["movie", "series"],
@@ -35,7 +35,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-builder.defineStreamHandler(async function (args) {
+builder.defineStreamHandler(async function(args) {
   try {
     const info = await findShowInfo(args.type, args.id);
     if (info) {
