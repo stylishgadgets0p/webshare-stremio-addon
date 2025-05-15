@@ -9,7 +9,7 @@ const dev = process.argv.includes("--dev") == 1 ? "Dev" : "";
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
   id: "community.coffei.webshare" + dev,
-  version: "0.3.1",
+  version: "0.3.2",
   catalogs: [],
   resources: ["stream"],
   types: ["movie", "series"],
@@ -35,7 +35,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-builder.defineStreamHandler(async function(args) {
+builder.defineStreamHandler(async function (args) {
   try {
     const info = await findShowInfo(args.type, args.id);
     if (info) {
@@ -46,7 +46,12 @@ builder.defineStreamHandler(async function(args) {
       return { streams: streams };
     }
   } catch (error) {
-    console.error("Error: ", error.code, error.message, error.stack);
+    console.error(
+      "Error to get streams: ",
+      error.code,
+      error.message,
+      error.stack,
+    );
   }
   return { streams: [] };
 });
@@ -83,9 +88,13 @@ app.get(["/configure", "/"], (req, res) => {
 
 // Custom getUrl endpoint
 app.get("/getUrl/:ident", async (req, res) => {
-  const ident = req.params.ident;
-  const url = await webshare.getUrl(ident, req.query.token);
-  res.redirect(url);
+  try {
+    const ident = req.params.ident;
+    const url = await webshare.getUrl(ident, req.query.token);
+    res.redirect(url);
+  } catch (error) {
+    console.error("Error in getUrl: ", error.code, error.message, error.stack);
+  }
 });
 
 module.exports = app;

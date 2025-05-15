@@ -9,7 +9,8 @@ function extractLanguage(filename) {
     CES: "CZ",
     ČEŠTINA: "CZ",
     ČESKY: "CZ",
-    CZDAB: "CZ",
+    CESTINA: "CZ",
+    CESKY: "CZ",
 
     // English variations
     EN: "EN",
@@ -22,7 +23,7 @@ function extractLanguage(filename) {
     SLO: "SK",
     SLK: "SK",
     SLOVENČINA: "SK",
-    SKDAB: "SK",
+    SLOVENCINA: "SK",
   };
 
   // Split language codes into short (2-3 chars) and long codes for more precise matching
@@ -32,32 +33,33 @@ function extractLanguage(filename) {
 
   // First check for subtitle patterns - these take priority
   const subtitleKeywords = ["tit", "titulky", "subs", "sub"];
-  const audioKeywords = ["audio", "dabing", "dub"];
-  const allKeywords = [...subtitleKeywords, ...audioKeywords];
+  const audioKeywords = ["audio", "dabing", "dab", "dubbing", "dub"];
+  const uNAN = "[^\\p{L}\\p{N}]"; // Unicode non-alphanumeric
 
   // Unified patterns array for all language-detecting regexes, each using capturing groups
   // Use non-alphanumeric boundaries to avoid false positives and ensure correct matches
   const patterns = {
-    // Subtitle or audio keywords with language (e.g., titulky CZ, CZ titulky)
+    // Subtitle keywords with language (e.g., titulky CZ, CZ titulky) fully isolated by non-alphanumeric characters
     subtitleRegex: new RegExp(
-      `(?:${allKeywords.join("|")})[^a-zA-Z0-9]+(${langCodes.join("|")})(?:[^a-zA-Z0-9]|$)|(?:^|[^a-zA-Z0-9])(${langCodes.join(
-        "|",
-      )})[^a-zA-Z0-9]+(?:${allKeywords.join("|")})(?:[^a-zA-Z0-9]|$)`,
+      `(?:^|${uNAN})(?:${subtitleKeywords.join("|")})${uNAN}+(${langCodes.join("|")})(?:${uNAN}|$)` + //subtitle keyword + one or more non-alphanumeric characters + language code
+        `|(?:^|${uNAN})(${langCodes.join("|")})${uNAN}+(?:${subtitleKeywords.join("|")})(?:${uNAN}|$)`, //language code + one or more non-alphanumeric characters + subtitle keyword
+      "giu",
+    ),
+    // Concatenated format (e.g., CSsub, CZtit) - directly add titulky for matches
+    concatenatedSubtitleRegex: new RegExp(
+      `(${langCodes.join("|")})(?:${subtitleKeywords.join("|")})` + //language code + subtitle keyword
+        `|(?:${subtitleKeywords.join("|")})(${langCodes.join("|")})`, //subtitle keyword + language code
       "gi",
     ),
-    // Concatenated format (e.g., CZSub, CZaudio) - only match if at start
-    concatenatedRegex: new RegExp(
-      `(?:^|[^a-zA-Z0-9])(${langCodes.join("|")})(?:${allKeywords.join("|")})(?:[^a-zA-Z0-9]|$)`,
-      "gi",
-    ),
-    // Must be entirely isolated (surrounded by spaces, punctuation, or string boundaries)
-    // [^a-zA-Z0-9] caused some false positives
+    //generalReges, language codes...
     generalRegex: new RegExp(
-      `(?:^|[\\s.,;:!?\\-_\\[\\]()])(${langCodes.join("|")})(?=[\\s.,;:!?\\-_\\[\\](]|$)`,
-      "gi",
+      `(?:^|${uNAN})(${langCodes.join("|")})(?=${uNAN}|$)` + //...must be entirely isolated by non-alphanumeric characters
+        `|(${langCodes.join("|")})(?:${audioKeywords.join("|")})`, //...or must be followed by audio keywords
+      "giu",
     ),
   };
 
+  //
   // Store all found languages
   const foundLanguages = new Set();
   const subtitleLangs = new Set();
@@ -70,7 +72,10 @@ function extractLanguage(filename) {
         const lang = match[i] ? match[i].toUpperCase() : null;
         if (lang && languageMap[lang]) {
           // If this is the subtitle/audio pattern (index 0), check for subtitle keyword
-          if (patternName === "subtitleRegex") {
+          if (
+            patternName === "subtitleRegex" ||
+            patternName === "concatenatedSubtitleRegex"
+          ) {
             const matchStr = match[0].toLowerCase();
             const hasSubtitleKeyword = subtitleKeywords.some((kw) =>
               matchStr.includes(kw),
@@ -81,6 +86,7 @@ function extractLanguage(filename) {
               continue;
             }
           }
+
           // Only add plain language code if not already marked as 'titulky'
           if (!subtitleLangs.has(languageMap[lang])) {
             foundLanguages.add(languageMap[lang]);
@@ -97,16 +103,21 @@ function extractLanguage(filename) {
 }
 
 function extractSeasonEpisode(filename) {
-  // Handle standard S01E01 and 1x01 formats with various separators
-  // Updated: allow any non-alphanumeric characters as separators
-  const standardRegex =
-    /(?:^|[^a-zA-Z0-9])(?:(?:s|season\s*)(\d{1,2})[^a-zA-Z0-9]*(?:e|ep|episode\s*)(\d{1,3})|(\d{1,2})[^a-zA-Z0-9]*(?:x|×)[^a-zA-Z0-9]*(\d{1,3}))(?:[^a-zA-Z0-9]|$)/i;
+  const uNAN = "[^\\p{L}\\p{N}]"; // Unicode non-alphanumeric
+
+  // Handle 01x01 (001) with any non-alphanumeric characters as separators
+  const standardRegex = new RegExp(
+    `(?:^|${uNAN})(?:(?:s|season\\s*)(\\d{1,2})${uNAN}*(?:e|ep|episode\\s*)(\\d{1,3})` + //e.g. S01E01
+      `|(\\d{1,2})${uNAN}*(?:x|×)${uNAN}*(\\d{1,3}))(?:${uNAN}|$)`, //e.g. 01 x 01
+    "iu",
+  );
 
   // Handle episode-only and part-based formats with unified regex
   // Matches: e01, ep 01, episode 01, #01, part 1, pt 1, part.1, pt.1, etc.
-  // Now handles any non-alphanumeric delimiter between prefix and number
-  const episodeOrPartRegex =
-    /(?:^|[^a-zA-Z0-9])(?:(?:e|ep|episode|#|part|pt)[^a-zA-Z0-9]*(\d{1,3}))(?:[^a-zA-Z0-9]|$)/i;
+  const episodeOrPartRegex = new RegExp(
+    `(?:^|${uNAN})(?:(?:e|ep|episode|#|part|pt)${uNAN}*(\\d{1,3}))(?:${uNAN}|$)`,
+    "iu",
+  );
 
   // Try each regex in order of specificity
   let match = filename.match(standardRegex);

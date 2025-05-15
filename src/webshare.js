@@ -188,32 +188,13 @@ const webshare = {
               (item.language ? `\n🌐 ${item.language}` : "") +
               `\n👍 ${item.posVotes} 👎 ${item.negVotes}` +
               `\n💾 ${filesize(item.size)}`,
-            match: Math.max(
-              queryTitle
-                ? stringSimilarity.compareTwoStrings(cleanedTitle, queryTitle)
-                : 0,
-              queryTitleOriginal
-                ? stringSimilarity.compareTwoStrings(
-                    cleanedTitle,
-                    queryTitleOriginal,
-                  )
-                : 0,
-              queryTitleSk
-                ? stringSimilarity.compareTwoStrings(cleanedTitle, queryTitleSk)
-                : 0,
-              queryTitleSk
-                ? stringSimilarity.compareTwoStrings(
-                    cleanedTitle,
-                    queryTitleSk + "/" + queryTitleOriginal,
-                  )
-                : 0,
-              queryTitle
-                ? stringSimilarity.compareTwoStrings(
-                    cleanedTitle,
-                    queryTitle + "/" + queryTitleOriginal,
-                  )
-                : 0,
-            ),
+            match: stringSimilarity.findBestMatch(cleanedTitle, [
+              queryTitle,
+              queryTitleOriginal,
+              queryTitleSk,
+              queryTitleSk + "/" + queryTitleOriginal,
+              queryTitle + "/" + queryTitleOriginal,
+            ]).bestMatch.rating,
             SeasonEpisode: item.SeasonEpisode,
             posVotes: item.posVotes,
             name: `Webshare ${item.parsedTitle.resolution || ""}`,
@@ -240,7 +221,11 @@ const webshare = {
             !item.protected &&
             item.match > 0.5 && //this threshold has best results, it filters out the most irrelevant streams
             item.queryTitleYear == item.titleYear && //filters out movies, which we are sure, that should not be send to Stremio
-            !(showInfo.type == "movie" && item.SeasonEpisode) && //if movie, remove series streams from movie results
+            !(
+              showInfo.type == "movie" &&
+              item.SeasonEpisode &&
+              !item.name.toLowerCase().includes("part") //some movies can have parts, e.g. "The Dark Knight Part 2", which would lead to exclusion of correct streams
+            ) && //if movie, remove series streams from movie results
             !(
               showInfo.type == "series" &&
               (item.SeasonEpisode?.season != showInfo.series ||
