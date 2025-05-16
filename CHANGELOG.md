@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+Fixed and optimized regexes in filenameParser
+
 ## 0.3.1
 
 Fix streams not showing up in Web and TizenOS versions of Stremio.

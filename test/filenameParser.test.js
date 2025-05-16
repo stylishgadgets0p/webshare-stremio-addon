@@ -15,15 +15,15 @@ test("extractLanguage", () => {
   expect(extractLanguage("movie.CZ.titulky.mkv")).toBe("CZ titulky");
   expect(extractLanguage("movie.dabing.SK.avi")).toBe("SK");
   expect(extractLanguage("movie.SK.dabing.avi")).toBe("SK");
-  expect(extractLanguage("movieCZSub.mkv")).toBeNull();
-  expect(extractLanguage("movieENaudio.avi")).toBeNull();
+  expect(extractLanguage("movieCZSub.mkv")).toBe("CZ titulky");
+  expect(extractLanguage("movieENaudio.avi")).toBe("EN");
   expect(extractLanguage("prodlouzena.mkv")).toBeNull();
   expect(extractLanguage("englishman.avi")).toBeNull();
-  expect(extractLanguage("ceskydabing.mp4")).toBeNull();
+  expect(extractLanguage("ceskydabing.mp4")).toBe("CZ");
   expect(extractLanguage("movie.DUAL.CZ.mkv")).toBe("CZ");
   expect(extractLanguage("movie.MULTI.EN.avi")).toBe("EN");
   expect(extractLanguage("[CZ] movie.mkv")).toBe("CZ");
-  expect(extractLanguage("(EN)) movie.avi")).toBeNull();
+  expect(extractLanguage("(EN)) movie.avi")).toBe("EN");
   expect(extractLanguage("movie-CZ-EN.mkv")).toBe("CZ|EN");
   expect(extractLanguage("movie_SK-EN.avi")).toBe("EN|SK");
   expect(extractLanguage("randomfile.mkv")).toBeNull();
@@ -60,7 +60,7 @@ test("extractLanguage", () => {
     "CZ titulky|SK",
   );
   expect(extractLanguage("[CZECH] movie.mkv")).toBe("CZ");
-  expect(extractLanguage("(SLOVENČINA)) movie.avi")).toBeNull();
+  expect(extractLanguage("(SLOVENČINA)) movie.avi")).toBe("SK");
   expect(extractLanguage("movie.CZ,EN,EN,SK.mkv")).toBe("CZ|EN|SK");
   expect(extractLanguage("movie.CZ-EN-EN-SK.mkv")).toBe("CZ|EN|SK");
   expect(extractLanguage("movie.CZ.EN.EN.SLOVENČINA.mkv")).toBe("CZ|EN|SK");
