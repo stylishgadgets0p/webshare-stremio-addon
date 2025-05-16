@@ -126,16 +126,16 @@ const webshare = {
           //if there is parsed year of release for found stream, add it to comparison to have better sorting results
           const titleYear =
             showInfo.type === "movie" &&
-            item.parsedTitle.year &&
-            showInfo.year &&
-            !ptt.parse(queries[0]).year
+              item.parsedTitle.year &&
+              showInfo.year &&
+              !ptt.parse(queries[0]).year
               ? `${showInfo.year}`
               : ""; //if there is year in title, do not compare years e.g. Wonder Woman 1984 (2020)
           const queryTitleYear =
             showInfo.type === "movie" &&
-            item.parsedTitle.year &&
-            showInfo.year &&
-            !ptt.parse(queries[0]).year
+              item.parsedTitle.year &&
+              showInfo.year &&
+              !ptt.parse(queries[0]).year
               ? `${item.parsedTitle.year}`
               : "";
 
@@ -192,9 +192,9 @@ const webshare = {
               queryTitle,
               queryTitleOriginal,
               queryTitleSk,
-              queryTitleSk + "/" + queryTitleOriginal,
-              queryTitle + "/" + queryTitleOriginal,
-            ]).bestMatch.rating,
+              queryTitleSk && queryTitleOriginal && queryTitleSk + "/" + queryTitleOriginal,
+              queryTitle && queryTitleOriginal && queryTitle + "/" + queryTitleOriginal,
+            ].filter(q => q)).bestMatch.rating,
             SeasonEpisode: item.SeasonEpisode,
             posVotes: item.posVotes,
             name: `Webshare ${item.parsedTitle.resolution || ""}`,
