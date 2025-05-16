@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- Fixed issues with 0.3.2
+- Set caching limits to prevent caching stream URLs for too long (#7).
+
 ## 0.3.2
 
 Fixed and optimized regexes in filenameParser
