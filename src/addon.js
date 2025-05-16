@@ -35,7 +35,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-builder.defineStreamHandler(async function (args) {
+builder.defineStreamHandler(async function(args) {
   try {
     const info = await findShowInfo(args.type, args.id);
     if (info) {
@@ -91,6 +91,14 @@ app.get("/getUrl/:ident", async (req, res) => {
   try {
     const ident = req.params.ident;
     const url = await webshare.getUrl(ident, req.query.token);
+
+    const now = new Date()
+    // Expires 5 hours from now.
+    const expiration = new Date(now.getTime() + 5 * 60 * 60 * 1000)
+    res.set('Expires', expiration.toUTCString())
+    res.set('Last-Modified', now.toUTCString())
+    res.set('Cache-Control', 'max-age=18000, must-revalidate, proxy-revalidate');
+
     res.redirect(url);
   } catch (error) {
     console.error("Error in getUrl: ", error.code, error.message, error.stack);
