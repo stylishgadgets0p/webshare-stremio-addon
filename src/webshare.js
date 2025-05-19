@@ -126,16 +126,16 @@ const webshare = {
           //if there is parsed year of release for found stream, add it to comparison to have better sorting results
           const titleYear =
             showInfo.type === "movie" &&
-              item.parsedTitle.year &&
-              showInfo.year &&
-              !ptt.parse(queries[0]).year
+            item.parsedTitle.year &&
+            showInfo.year &&
+            !ptt.parse(queries[0]).year
               ? `${showInfo.year}`
               : ""; //if there is year in title, do not compare years e.g. Wonder Woman 1984 (2020)
           const queryTitleYear =
             showInfo.type === "movie" &&
-              item.parsedTitle.year &&
-              showInfo.year &&
-              !ptt.parse(queries[0]).year
+            item.parsedTitle.year &&
+            showInfo.year &&
+            !ptt.parse(queries[0]).year
               ? `${item.parsedTitle.year}`
               : "";
 
@@ -150,6 +150,16 @@ const webshare = {
               .normalize("NFD") // "pelíšky" → "pelisky\u0301"
               .replace(/[\u0300-\u036f]/g, "") + //"pelisky\u0301" → "pelisky"
             titleYear;
+
+          const cleanedName = item.name
+            ?.replace(/subtitles/gi, "")
+            ?.replace(/titulky/gi, "")
+            ?.replace(/[^\p{L}\p{N}\s]/gu, " ") //remove special chars but keep accented letters like áíéř
+            ?.replace(/[_]/g, " ")
+            ?.trim()
+            ?.toLowerCase()
+            .normalize("NFD") // "pelíšky" → "pelisky\u0301"
+            .replace(/[\u0300-\u036f]/g, ""); //"pelisky\u0301" → "pelisky"
 
           const queryTitle = (
             showInfo.type == "series"
@@ -178,6 +188,28 @@ const webshare = {
             .normalize("NFD") // "pelíšky" → "pelisky\u0301"
             .replace(/[\u0300-\u036f]/g, ""); //"pelisky\u0301" → "pelisky"
 
+          const matchQueries = [
+            queryTitle,
+            queryTitleOriginal,
+            queryTitleSk,
+            queryTitleSk &&
+              queryTitleOriginal &&
+              queryTitleSk + "/" + queryTitleOriginal,
+            queryTitle &&
+              queryTitleOriginal &&
+              queryTitle + "/" + queryTitleOriginal,
+          ].filter((q) => q);
+
+          const titleMatch = stringSimilarity.findBestMatch(
+            cleanedTitle,
+            matchQueries,
+          ).bestMatch.rating;
+
+          const nameMatch = stringSimilarity.findBestMatch(
+            cleanedName,
+            matchQueries,
+          ).bestMatch.rating;
+
           return {
             ident: item.ident,
             titleYear: titleYear,
@@ -188,16 +220,12 @@ const webshare = {
               (item.language ? `\n🌐 ${item.language}` : "") +
               `\n👍 ${item.posVotes} 👎 ${item.negVotes}` +
               `\n💾 ${filesize(item.size)}`,
-            match: stringSimilarity.findBestMatch(cleanedTitle, [
-              queryTitle,
-              queryTitleOriginal,
-              queryTitleSk,
-              queryTitleSk && queryTitleOriginal && queryTitleSk + "/" + queryTitleOriginal,
-              queryTitle && queryTitleOriginal && queryTitle + "/" + queryTitleOriginal,
-            ].filter(q => q)).bestMatch.rating,
+            match: titleMatch,
+            fulltextMatch: nameMatch,
             SeasonEpisode: item.SeasonEpisode,
             posVotes: item.posVotes,
-            name: `Webshare ${item.parsedTitle.resolution || ""}`,
+            // add a check-mark if we get a strong match based on the parsed filename
+            name: `Webshare${titleMatch > 0.5 ? " ✅" : ""} ${item.parsedTitle.resolution || ""}`,
             behaviorHints: {
               bingeGroup:
                 "WebshareStremio|" +
@@ -219,7 +247,8 @@ const webshare = {
         .filter(
           (item) =>
             !item.protected &&
-            item.match > 0.5 && //this threshold has best results, it filters out the most irrelevant streams
+            (item.match > 0.5 || //this threshold has best results, it filters out the most irrelevant streams
+              item.fulltextMatch > 0.3) && // this allows other lower quality results, useful for titles where parse-torrent-title parses the title incorrectly
             item.queryTitleYear == item.titleYear && //filters out movies, which we are sure, that should not be send to Stremio
             !(
               showInfo.type == "movie" &&
@@ -235,6 +264,8 @@ const webshare = {
         .sort((a, b) => {
           if (a.match != b.match) {
             return b.match - a.match;
+          } else if (a.fulltextMatch != b.fulltextMatch) {
+            return b.fulltextMatch - a.fulltextMatch;
           } else if (a.posVotes != b.posVotes) {
             return b.posVotes - a.posVotes;
           } else {
