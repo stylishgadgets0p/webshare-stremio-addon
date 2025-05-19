@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4
+
+- Show streams matching only by filename (#8).
+
 ## 0.3.3
 
 - Fixed issues with 0.3.2
