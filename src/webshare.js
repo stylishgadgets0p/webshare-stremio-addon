@@ -54,7 +54,7 @@ const search = async (query, token) => {
       (el) => el.name == "negative_votes",
     ).value;
     const name = el.children.find((el) => el.name == "name").value;
-    const protected = el.children.find((el) => el.name == "password");
+    const password = el.children.find((el) => el.name == "password");
     return {
       ident,
       name,
@@ -64,7 +64,7 @@ const search = async (query, token) => {
       language: extractLanguage(name),
       parsedTitle: ptt.parse(name),
       SeasonEpisode: extractSeasonEpisode(name),
-      protected: protected && protected.value == "1",
+      protected: password && password.value == "1",
     };
   });
 };
@@ -210,6 +210,9 @@ const webshare = {
             matchQueries,
           ).bestMatch.rating;
 
+          // this threshold has best results, it filters out the most irrelevant streams
+          const strongMatch = titleMatch > 0.5;
+
           return {
             ident: item.ident,
             titleYear: titleYear,
@@ -221,11 +224,15 @@ const webshare = {
               `\n👍 ${item.posVotes} 👎 ${item.negVotes}` +
               `\n💾 ${filesize(item.size)}`,
             match: titleMatch,
-            fulltextMatch: nameMatch,
+            strongMatch,
+            // round to the precision of 1 decimal point, for sorting purposes lower
+            fulltextMatch: Math.round(nameMatch * 10) / 10,
+            // this allows other lower quality results, useful for titles where parse-torrent-title parses the title incorrectly
+            weakMatch: nameMatch > 0.3,
             SeasonEpisode: item.SeasonEpisode,
             posVotes: item.posVotes,
             // add a check-mark if we get a strong match based on the parsed filename
-            name: `Webshare${titleMatch > 0.5 ? " ✅" : ""} ${item.parsedTitle.resolution || ""}`,
+            name: `Webshare${strongMatch ? " ✅" : ""} ${item.parsedTitle.resolution || ""}`,
             behaviorHints: {
               bingeGroup:
                 "WebshareStremio|" +
@@ -247,8 +254,7 @@ const webshare = {
         .filter(
           (item) =>
             !item.protected &&
-            (item.match > 0.5 || //this threshold has best results, it filters out the most irrelevant streams
-              item.fulltextMatch > 0.3) && // this allows other lower quality results, useful for titles where parse-torrent-title parses the title incorrectly
+            (item.strongMatch || item.weakMatch) &&
             item.queryTitleYear == item.titleYear && //filters out movies, which we are sure, that should not be send to Stremio
             !(
               showInfo.type == "movie" &&
@@ -262,14 +268,35 @@ const webshare = {
             ), //if series, keep only streams with correct season and episode
         )
         .sort((a, b) => {
-          if (a.match != b.match) {
-            return b.match - a.match;
-          } else if (a.fulltextMatch != b.fulltextMatch) {
-            return b.fulltextMatch - a.fulltextMatch;
-          } else if (a.posVotes != b.posVotes) {
-            return b.posVotes - a.posVotes;
+          if (a.strongMatch && b.strongMatch) {
+            // Compare strong matches between themselves by match, positive votes and size. Do not
+            // use `fulltextMatch` since we know `match` should provide a better metric here. Using
+            // both `match` and `fulltextMatch` leads to the fact that other criteria are basically
+            // ignored.
+            if (a.match != b.match) {
+              return b.match - a.match;
+            } else if (a.posVotes != b.posVotes) {
+              return b.posVotes - a.posVotes;
+            } else {
+              return b.behaviorHints.videoSize - a.behaviorHints.videoSize;
+            }
+          } else if (!a.strongMatch && !b.strongMatch) {
+            // Compare weak matches between themselves by match, fulltextMatch, positive votes and
+            // size. Note that `match` is below the strong-threshold but still is the primary
+            // indicator of quality.
+            if (a.match != b.match) {
+              return b.match - a.match;
+            } else if (a.fulltextMatch != b.fulltextMatch) {
+              return b.fulltextMatch - a.fulltextMatch;
+            } else if (a.posVotes != b.posVotes) {
+              return b.posVotes - a.posVotes;
+            } else {
+              return b.behaviorHints.videoSize - a.behaviorHints.videoSize;
+            }
           } else {
-            return b.behaviorHints.videoSize - a.behaviorHints.videoSize;
+            // if one is strong and the other is not, we can just compare by `match` since it
+            // definitely won't be the same
+            return b.match - a.match;
           }
         })
         .slice(0, 100)
