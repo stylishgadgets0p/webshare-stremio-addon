@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5
+
+- Improve search results order (#9).
+
 ## 0.3.4
 
 - Show streams matching only by filename (#8).
