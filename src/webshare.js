@@ -16,6 +16,13 @@ const headers = {
   accept: "text/xml; charset=UTF-8",
 };
 
+const normalizeText = (text) =>
+  text
+    ?.trim()
+    ?.toLowerCase()
+    .normalize("NFD") // "pelíšky" → "pelisky\u0301"
+    .replace(/[\u0300-\u036f]/g, ""); // "pelisky\u0301" → "pelisky"
+
 const getQueries = (info) => {
   const names = Array.from(
     new Set([info.name, info.nameSk, info.originalName].filter((n) => n)),
@@ -140,53 +147,39 @@ const webshare = {
               : "";
 
           const cleanedTitle =
-            item.parsedTitle.title
+            normalizeText(
+              item.parsedTitle.title
+                ?.replace(/subtitles/gi, "")
+                ?.replace(/titulky/gi, "")
+                ?.replace(/[^\p{L}\p{N}\s]/gu, " ") //remove special chars but keep accented letters like áíéř
+                ?.replace(/[_]/g, " "),
+            ) + titleYear;
+
+          const cleanedName = normalizeText(
+            item.name
               ?.replace(/subtitles/gi, "")
               ?.replace(/titulky/gi, "")
               ?.replace(/[^\p{L}\p{N}\s]/gu, " ") //remove special chars but keep accented letters like áíéř
-              ?.replace(/[_]/g, " ")
-              ?.trim()
-              ?.toLowerCase()
-              .normalize("NFD") // "pelíšky" → "pelisky\u0301"
-              .replace(/[\u0300-\u036f]/g, "") + //"pelisky\u0301" → "pelisky"
-            titleYear;
+              ?.replace(/[_]/g, " "),
+          );
 
-          const cleanedName = item.name
-            ?.replace(/subtitles/gi, "")
-            ?.replace(/titulky/gi, "")
-            ?.replace(/[^\p{L}\p{N}\s]/gu, " ") //remove special chars but keep accented letters like áíéř
-            ?.replace(/[_]/g, " ")
-            ?.trim()
-            ?.toLowerCase()
-            .normalize("NFD") // "pelíšky" → "pelisky\u0301"
-            .replace(/[\u0300-\u036f]/g, ""); //"pelisky\u0301" → "pelisky"
-
-          const queryTitle = (
+          const queryTitle = normalizeText(
             showInfo.type == "series"
               ? queries[0]?.split(" ").slice(0, -1).join(" ")
-              : queries[0] + queryTitleYear
-          )
-            ?.toLowerCase()
-            .normalize("NFD") // "pelíšky" → "pelisky\u0301"
-            .replace(/[\u0300-\u036f]/g, ""); //"pelisky\u0301" → "pelisky"
+              : queries[0] + queryTitleYear,
+          );
 
-          const queryTitleSk = (
+          const queryTitleSk = normalizeText(
             showInfo.type == "series"
               ? queries[1]?.split(" ").slice(0, -1).join(" ")
-              : queries[1] + queryTitleYear
-          )
-            ?.toLowerCase()
-            .normalize("NFD") // "pelíšky" → "pelisky\u0301"
-            .replace(/[\u0300-\u036f]/g, ""); //"pelisky\u0301" → "pelisky"
+              : queries[1] + queryTitleYear,
+          );
 
-          const queryTitleOriginal = (
+          const queryTitleOriginal = normalizeText(
             showInfo.type == "series"
               ? queries[2]?.split(" ").slice(0, -1).join(" ")
-              : queries[2] + queryTitleYear
-          )
-            ?.toLowerCase()
-            .normalize("NFD") // "pelíšky" → "pelisky\u0301"
-            .replace(/[\u0300-\u036f]/g, ""); //"pelisky\u0301" → "pelisky"
+              : queries[2] + queryTitleYear,
+          );
 
           const matchQueries = [
             queryTitle,
