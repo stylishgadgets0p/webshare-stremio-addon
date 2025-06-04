@@ -92,7 +92,7 @@ const webshare = {
     const data = formencode({
       username_or_email: user,
       password: passEncoded,
-      keep_logged_in: 0,
+      keep_logged_in: 1,
     });
     const resp = await needle(
       "post",
