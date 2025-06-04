@@ -87,6 +87,8 @@ app.get(["/configure", "/"], (req, res) => {
 });
 
 // Custom getUrl endpoint
+// Not used anymore, keeping it here for backwards compatibility, since Stremio can cache old search
+// results and URLs for a little while. Remove this after some time.
 app.get("/getUrl/:ident", async (req, res) => {
   try {
     const ident = req.params.ident;

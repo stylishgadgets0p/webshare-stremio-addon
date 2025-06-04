@@ -5,10 +5,6 @@ const formencode = require("form-urlencoded");
 const { filesize } = require("filesize");
 const ptt = require("parse-torrent-title");
 const stringSimilarity = require("string-similarity");
-const host =
-  process.argv.includes("--dev") == 1
-    ? "http://localhost:61613/"
-    : "https://20317bf4c6c6-webshare-stremio-addon.baby-beamup.club/";
 const { extractSeasonEpisode, extractLanguage } = require("./filenameParser");
 
 const headers = {
@@ -210,7 +206,7 @@ const webshare = {
             ident: item.ident,
             titleYear: titleYear,
             queryTitleYear: queryTitleYear,
-            url: host + "getUrl/" + item.ident + "?token=" + token,
+            url: webshare.getRedirectLink(item.ident, token),
             description:
               item.name +
               (item.language ? `\n🌐 ${item.language}` : "") +
@@ -295,6 +291,10 @@ const webshare = {
         .slice(0, 100)
     );
   },
+
+  getRedirectLink: (ident, token) =>
+    "https://webshare.cz/api/file_link/?" +
+    new URLSearchParams({ ident, wst: token }).toString(),
 
   getUrl: async (ident, token) => {
     const data = formencode({
