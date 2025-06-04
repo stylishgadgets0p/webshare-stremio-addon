@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- Use long-term login tokens to make URLs valid for a longer time (#7).
+- Replace getUrl endpoint with direct call to Webshare.
+
 ## 0.3.5
 
 - Improve search results order (#9).
