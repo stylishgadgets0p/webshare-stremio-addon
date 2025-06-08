@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Add background to the logo so it renders better on various backgrounds.
+
 ## 0.5.0
 
 - Add custom login page that allows the following:
