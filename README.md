@@ -1,5 +1,7 @@
 # Webshare Stremio Addon
 
+<img src="src/static/logo.png" height="250px"/>
+
 This addon enables streaming movies and series from Webshare.cz.
 
 The main principles are simplicity and low-maintenance. For this reason there is no video catalog
