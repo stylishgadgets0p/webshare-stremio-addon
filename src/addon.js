@@ -33,6 +33,11 @@ const manifest = {
       required: true,
     },
   ],
+  stremioAddonsConfig: {
+    issuer: "https://stremio-addons.net",
+    signature:
+      "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..mh4jFfQQrEq1Vy-pr9NTkQ.Gp2N-4Mf59lof0OvKVS2m046p7PjhChVHasVT05bGlpwAOiinwU9UX-Yu-8XsisAqYvfJkSJ25EdcOiL-vCMnj_vXRrhxFZQxJKex4_bqeHjdWvyNYJjqUF2oYpZ1XS3.hbgL1AJ03OOLQ0QlKhoy3w",
+  },
 };
 
 const builder = new addonBuilder(manifest);
