@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Add custom login page that allows the following:
+  - Login credentials are verified and if not valid the addon is not installed.
+  - Password are salted before storing them in the addon config.
+  - Added more WebShare-themed background and custom logo.
+
 ## 0.4.1
 
 - Revert: Replace getUrl endpoint with direct call to Webshare.
