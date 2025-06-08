@@ -1,3 +1,4 @@
+const pkg = require("../package.json");
 const { addonBuilder, getRouter } = require("stremio-addon-sdk");
 const webshare = require("./webshare");
 const { findShowInfo } = require("./meta");
@@ -9,7 +10,7 @@ const dev = process.argv.includes("--dev") == 1 ? "Dev" : "";
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
   id: "community.coffei.webshare" + dev,
-  version: "0.4.1",
+  version: pkg.version,
   catalogs: [],
   resources: ["stream"],
   types: ["movie", "series"],
