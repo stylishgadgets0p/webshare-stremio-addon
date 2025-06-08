@@ -5,6 +5,7 @@ const { findShowInfo } = require("./meta");
 const express = require("express");
 const path = require("path");
 const landingTemplate = require("./html/landingTemplate");
+const { host } = require("./env");
 const dev = process.argv.includes("--dev") == 1 ? "Dev" : "";
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
@@ -110,7 +111,7 @@ app.post("/configure", async (req, res) => {
   } catch (e) {}
   if (token) {
     const config = { login, saltedPassword: salted };
-    const url = `stremio://${req.host}/${encodeURIComponent(JSON.stringify(config))}/manifest.json`;
+    const url = `stremio://${host}/${encodeURIComponent(JSON.stringify(config))}/manifest.json`;
     res.redirect(url);
   } else {
     const landingHTML = landingTemplate(manifest, true, { login });
