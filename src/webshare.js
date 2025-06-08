@@ -77,21 +77,20 @@ const search = async (query, token) => {
 };
 
 const webshare = {
-  login: async (user, password) => {
-    console.log(`Logging in user ${user}`);
-    // get salt
+  saltPassword: async (user, password) => {
     const saltResp = await needle(
       "https://webshare.cz/api/salt/",
       `username_or_email=${user}`,
       headers,
     );
     const salt = saltResp.body.children.find((el) => el.name == "salt").value;
-
-    // login
-    const passEncoded = sha1(md5.crypt(password, salt));
+    return sha1(md5.crypt(password, salt));
+  },
+  login: async (user, saltedPassword) => {
+    console.log(`Logging in user ${user}`);
     const data = formencode({
       username_or_email: user,
-      password: passEncoded,
+      password: saltedPassword,
       keep_logged_in: 1,
     });
     const resp = await needle(

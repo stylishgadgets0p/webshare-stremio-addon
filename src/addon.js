@@ -1,9 +1,9 @@
 const { addonBuilder, getRouter } = require("stremio-addon-sdk");
-const needle = require("needle");
 const webshare = require("./webshare");
 const { findShowInfo } = require("./meta");
 const express = require("express");
 const path = require("path");
+const landingTemplate = require("./html/landingTemplate");
 const dev = process.argv.includes("--dev") == 1 ? "Dev" : "";
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
@@ -40,7 +40,16 @@ builder.defineStreamHandler(async function (args) {
     const info = await findShowInfo(args.type, args.id);
     if (info) {
       const config = args.config || {};
-      const wsToken = await webshare.login(config.login, config.password);
+      let wsToken;
+      if (config.saltedPassword) {
+        wsToken = await webshare.login(config.login, config.saltedPassword);
+      } else {
+        const saltedPassword = await webshare.saltPassword(
+          config.login,
+          config.password,
+        );
+        wsToken = await webshare.login(config.login, saltedPassword);
+      }
       const streams = await webshare.search(info, wsToken);
 
       return { streams: streams };
@@ -77,13 +86,36 @@ app.use((req, res, next) => {
 // Serve static files from SDK (required for the configuration page)
 const sdkPath = path.dirname(require.resolve("stremio-addon-sdk/package.json"));
 app.use("/static", express.static(path.join(sdkPath, "static")));
+app.use("/mystatic/", express.static(path.join(__dirname, "static")));
+
+// Add middleware to decode FORM requests
+app.use(express.urlencoded({ extended: true }));
 
 // Add root route to serve the landing page
 app.get(["/configure", "/"], (req, res) => {
-  const landingTemplate = require("stremio-addon-sdk/src/landingTemplate");
   const landingHTML = landingTemplate(manifest);
   res.setHeader("content-type", "text/html");
   res.end(landingHTML);
+});
+
+// Finish installation - salt the password and redirect to install/update the plugin
+app.post("/configure", async (req, res) => {
+  const { login, password } = req.body;
+  let salted;
+  let token;
+  try {
+    salted = await webshare.saltPassword(login, password);
+    token = await webshare.login(login, salted);
+  } catch (e) {}
+  if (token) {
+    const config = { login, saltedPassword: salted };
+    const url = `stremio://${req.host}/${encodeURIComponent(JSON.stringify(config))}/manifest.json`;
+    res.redirect(url);
+  } else {
+    const landingHTML = landingTemplate(manifest, true, { login });
+    res.setHeader("content-type", "text/html");
+    res.end(landingHTML);
+  }
 });
 
 // Custom getUrl endpoint
