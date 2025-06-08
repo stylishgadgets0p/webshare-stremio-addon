@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Fix installation - use correct hostname
+
 ## 0.5.1
 
 - Add background to the logo so it renders better on various backgrounds.
