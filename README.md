@@ -13,11 +13,11 @@ Feel free to open up issues if you find any issues.
 
 ## How can I use it?
 
-Go to https://20317bf4c6c6-webshare-stremio-addon.baby-beamup.club/, enter your Webshare.cz login
-details and install.
+This addon is submitted to the community addon catalog. To install, just go Addons -> Community and search for `Webshare.cz`.
 
-This addon is not yet submitted to the community addon catalog, that will be done after some testing
-period.
+Alternative is to follow the link https://20317bf4c6c6-webshare-stremio-addon.baby-beamup.club/ and install from there.
+
+You need to have valid Webshare.cz credentials and a premium account.
 
 ## Development
 
