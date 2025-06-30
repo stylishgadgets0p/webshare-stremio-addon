@@ -22,7 +22,9 @@ const normalizeText = (text) =>
 
 const getQueries = (info) => {
   const names = Array.from(
-    new Set([info.name, info.nameSk, info.originalName].filter((n) => n)),
+    new Set(
+      [info.name, info.nameSk, info.nameEn, info.originalName].filter((n) => n),
+    ),
   );
   if (info.type == "series") {
     return names.flatMap((name) => {
