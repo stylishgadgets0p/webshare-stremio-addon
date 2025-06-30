@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3
+
+- Improve search for non-EN titles. We now also search for the EN title name.
+
 ## 0.5.2
 
 - Fix installation - use correct hostname
