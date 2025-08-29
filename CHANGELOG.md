@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Add direct search. The addon now provides catalog items as way to directly search files on
+  Webshare. This way you can find files that don't belong to any existing catalog items, e.g. niche
+  shows that just are not in Cinemeta.
+
 ## 0.5.3
 
 - Improve search for non-EN titles. We now also search for the EN title name.
