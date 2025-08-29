@@ -5,19 +5,30 @@ const { findShowInfo } = require("./meta");
 const express = require("express");
 const path = require("path");
 const landingTemplate = require("./html/landingTemplate");
-const { host } = require("./env");
+const { host, url } = require("./env");
 const dev = process.argv.includes("--dev") == 1 ? "Dev" : "";
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
+types = ["movie", "series"];
 const manifest = {
   id: "community.coffei.webshare" + dev,
   version: pkg.version,
-  catalogs: [],
-  resources: ["stream"],
+  resources: [
+    { name: "stream", types, idPrefixes: ["tt", "coffei.webshare:"] },
+    { name: "catalog", types, idPrefixes: ["coffei.webshare:"] },
+    { name: "meta", types, idPrefixes: ["coffei.webshare:"] },
+  ],
   types: ["movie", "series"],
   name: "Webshare.cz" + dev,
   description: "Simple webshare.cz search and streaming.",
-  idPrefixes: ["tt"],
+  catalogs: [
+    {
+      id: "direct",
+      type: "movie",
+      extra: [{ name: "search", isRequired: true }],
+    },
+  ],
+  idPrefixes: ["tt", "coffei.webshare:"],
   behaviorHints: { configurable: true, configurationRequired: true },
   config: [
     {
@@ -42,24 +53,41 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
+const getToken = async (config) => {
+  if (config.saltedPassword) {
+    return await webshare.login(config.login, config.saltedPassword);
+  } else {
+    const saltedPassword = await webshare.saltPassword(
+      config.login,
+      config.password,
+    );
+    return await webshare.login(config.login, saltedPassword);
+  }
+};
+
 builder.defineStreamHandler(async function (args) {
   try {
-    const info = await findShowInfo(args.type, args.id);
-    if (info) {
-      const config = args.config || {};
-      let wsToken;
-      if (config.saltedPassword) {
-        wsToken = await webshare.login(config.login, config.saltedPassword);
-      } else {
-        const saltedPassword = await webshare.saltPassword(
-          config.login,
-          config.password,
-        );
-        wsToken = await webshare.login(config.login, saltedPassword);
-      }
-      const streams = await webshare.search(info, wsToken);
+    if (args.id.startsWith("tt")) {
+      const info = await findShowInfo(args.type, args.id);
+      if (info) {
+        const wsToken = await getToken(args.config || {});
+        const streams = await webshare.search(info, wsToken);
 
-      return { streams: streams };
+        return { streams: streams };
+      }
+    } else if (args.id.startsWith("coffei.webshare:")) {
+      const wsId = args.id.substring(16);
+      const wsToken = await getToken(args.config || {});
+      return {
+        streams: [
+          {
+            ident: wsId,
+            url: url + "getUrl/" + wsId + "?token=" + wsToken,
+          },
+        ],
+      };
+    } else {
+      return { streams: [] };
     }
   } catch (error) {
     console.error(
@@ -70,6 +98,61 @@ builder.defineStreamHandler(async function (args) {
     );
   }
   return { streams: [] };
+});
+
+builder.defineCatalogHandler(async function (args) {
+  try {
+    const wsToken = await getToken(args.config || {});
+    const streams = await webshare.directSearch(args.extra.search, wsToken);
+    return {
+      metas: streams.map((s) => ({
+        id: `coffei.webshare:${s.ident}`,
+        name: s.name,
+        poster: s.img,
+        type: args.type,
+      })),
+      cacheMaxAge: 60 * 60 * 1000,
+    };
+  } catch (error) {
+    console.error(
+      "Error while getting catalog items: ",
+      error.code,
+      error.message,
+      error.stack,
+    );
+  }
+  return { metas: [] };
+});
+
+builder.defineMetaHandler(async function (args) {
+  try {
+    if (args.id.startsWith("coffei.webshare:")) {
+      const wsId = args.id.substring(16);
+      const wsToken = await getToken(args.config || {});
+      const info = await webshare.getById(wsId, wsToken);
+      return Promise.resolve({
+        meta: {
+          id: args.id,
+          type: args.type,
+          name: info.name,
+          poster: info.stripe,
+          background: info.stripe,
+          description: info.description,
+          website: `https://webshare.cz/#/file/${wsId}`,
+        },
+      });
+    } else {
+      return Promise.resolve({ meta: {} });
+    }
+  } catch (error) {
+    console.error(
+      "Error while getting meta: ",
+      error.code,
+      error.message,
+      error.stack,
+    );
+  }
+  return { meta: {} };
 });
 
 const app = express();

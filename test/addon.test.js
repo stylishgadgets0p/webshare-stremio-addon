@@ -90,7 +90,6 @@ describe("POST /configure", () => {
     expect(res.headers.location).toMatch(/^stremio:\/\//);
 
     // Check config in redirect URL
-    console.log(res.headers.location);
     const match = res.headers.location.match(
       /stremio:\/\/[^/]+\/([^/]+)\/manifest\.json/,
     );
@@ -226,6 +225,25 @@ describe("Stream search handler", () => {
     expect(res.body).toHaveProperty("streams");
     expect(res.body.streams).toEqual([]);
   });
+
+  it("resturns a single stream for internal catalog items", async () => {
+    webshare.login.mockResolvedValueOnce(wsToken);
+    const config = encodeURIComponent(
+      JSON.stringify({ login, saltedPassword }),
+    );
+    const res = await request(app)
+      .get(`/${config}/stream/movie/coffei.webshare%3A123.json`)
+      .expect(200);
+
+    expect(res.body.streams).toEqual([
+      {
+        ident: "123",
+        url: `https://20317bf4c6c6-webshare-stremio-addon.baby-beamup.club/getUrl/123?token=${wsToken}`,
+      },
+    ]);
+
+    expect(webshare.login).toHaveBeenCalledWith(login, saltedPassword);
+  });
 });
 
 describe("GET /manifest.json", () => {
@@ -240,5 +258,177 @@ describe("GET /manifest.json", () => {
     expect(res.body.name).toBe("Webshare.cz");
     expect(res.body.types).toEqual(["movie", "series"]);
     expect(res.body.version).toBe(pkg.version);
+  });
+});
+
+describe("Catalog handler", () => {
+  const login = "testuser";
+  const password = "123456";
+  const saltedPassword = "salted-testpass";
+  const wsToken = "test-token";
+
+  it("returns found items as movies using a password", async () => {
+    const config = encodeURIComponent(JSON.stringify({ login, password }));
+    webshare.saltPassword.mockResolvedValueOnce(saltedPassword);
+    webshare.login.mockResolvedValueOnce(wsToken);
+    webshare.directSearch.mockResolvedValueOnce([
+      {
+        ident: "123",
+        name: "A.mkv",
+        posVotes: 1,
+        negVotes: 2,
+        img: "a.jpg",
+        size: 100,
+        language: "en",
+      },
+      {
+        ident: "987",
+        name: "B.mkv",
+        posVotes: 0,
+        negVotes: 0,
+        img: "b.jpg",
+        size: 5120,
+        language: "cs",
+      },
+    ]);
+
+    const res = await request(app)
+      .get(`/${config}/catalog/movie/direct/search=test.json`)
+      .expect(200);
+    expect(res.body.metas).toEqual([
+      {
+        id: "coffei.webshare:123",
+        name: "A.mkv",
+        poster: "a.jpg",
+        type: "movie",
+      },
+      {
+        id: "coffei.webshare:987",
+        name: "B.mkv",
+        poster: "b.jpg",
+        type: "movie",
+      },
+    ]);
+
+    expect(webshare.saltPassword).toHaveBeenCalledWith(login, password);
+    expect(webshare.directSearch).toHaveBeenCalledWith("test", wsToken);
+  });
+
+  it("returns found items as movies using a salted password", async () => {
+    const config = encodeURIComponent(
+      JSON.stringify({ login, saltedPassword }),
+    );
+    webshare.login.mockResolvedValueOnce(wsToken);
+    webshare.directSearch.mockResolvedValueOnce([
+      {
+        ident: "123",
+        name: "A.mkv",
+        posVotes: 1,
+        negVotes: 2,
+        img: "a.jpg",
+        size: 100,
+        language: "en",
+      },
+      {
+        ident: "987",
+        name: "B.mkv",
+        posVotes: 0,
+        negVotes: 0,
+        img: "b.jpg",
+        size: 5120,
+        language: "cs",
+      },
+    ]);
+
+    const res = await request(app)
+      .get(`/${config}/catalog/movie/direct/search=test.json`)
+      .expect(200);
+    expect(res.body.metas).toEqual([
+      {
+        id: "coffei.webshare:123",
+        name: "A.mkv",
+        poster: "a.jpg",
+        type: "movie",
+      },
+      {
+        id: "coffei.webshare:987",
+        name: "B.mkv",
+        poster: "b.jpg",
+        type: "movie",
+      },
+    ]);
+
+    expect(webshare.directSearch).toHaveBeenCalledWith("test", wsToken);
+  });
+});
+
+describe("Meta handler", () => {
+  const login = "testuser";
+  const password = "123456";
+  const saltedPassword = "salted-testpass";
+  const wsToken = "test-token";
+
+  it("returns info about a file using a password", async () => {
+    const config = encodeURIComponent(JSON.stringify({ login, password }));
+    webshare.saltPassword.mockResolvedValueOnce(saltedPassword);
+    webshare.login.mockResolvedValueOnce(wsToken);
+    webshare.getById.mockResolvedValueOnce({
+      ident: "123",
+      name: "A file",
+      filename: "a_file.mkv",
+      description: "Some nice file",
+      posVotes: 10,
+      negVotes: 2,
+      stripe: "background.png",
+      size: 1020,
+      language: "en,cs",
+    });
+
+    const res = await request(app).get(
+      `/${config}/meta/movie/coffei.webshare%3A123.json`,
+    );
+    expect(res.body.meta).toEqual({
+      id: "coffei.webshare:123",
+      type: "movie",
+      name: "A file",
+      poster: "background.png",
+      background: "background.png",
+      description: "Some nice file",
+      website: "https://webshare.cz/#/file/123",
+    });
+    expect(webshare.saltPassword).toHaveBeenCalledWith(login, password);
+    expect(webshare.getById).toHaveBeenCalledWith("123", wsToken);
+  });
+
+  it("returns info about a file using a salted password", async () => {
+    const config = encodeURIComponent(
+      JSON.stringify({ login, saltedPassword }),
+    );
+    webshare.login.mockResolvedValueOnce(wsToken);
+    webshare.getById.mockResolvedValueOnce({
+      ident: "123",
+      name: "A file",
+      filename: "a_file.mkv",
+      description: "Some nice file",
+      posVotes: 10,
+      negVotes: 2,
+      stripe: "background.png",
+      size: 1020,
+      language: "en,cs",
+    });
+
+    const res = await request(app).get(
+      `/${config}/meta/movie/coffei.webshare%3A123.json`,
+    );
+    expect(res.body.meta).toEqual({
+      id: "coffei.webshare:123",
+      type: "movie",
+      name: "A file",
+      poster: "background.png",
+      background: "background.png",
+      description: "Some nice file",
+      website: "https://webshare.cz/#/file/123",
+    });
+    expect(webshare.getById).toHaveBeenCalledWith("123", wsToken);
   });
 });

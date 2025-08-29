@@ -61,11 +61,13 @@ const search = async (query, token) => {
     ).value;
     const name = el.children.find((el) => el.name == "name").value;
     const password = el.children.find((el) => el.name == "password");
+    const img = el.children.find((el) => el.name == "img")?.value;
     return {
       ident,
       name,
       posVotes,
       negVotes,
+      img,
       size: parseInt(size, 10),
       language: extractLanguage(name),
       parsedTitle: ptt.parse(name),
@@ -105,6 +107,61 @@ const webshare = {
       throw Error("Cannot log in to Webshare.cz, invalid login credentials");
     }
     return resp.body.children.find((el) => el.name == "token").value;
+  },
+
+  directSearch: async (query, token) => {
+    return await search(query, token);
+  },
+
+  getById: async (id, token) => {
+    await needle("https://webshare.cz/api/file_info");
+    const data = formencode({ ident: id, wst: token });
+    const resp = await needle(
+      "post",
+      "https://webshare.cz/api/file_info/",
+      data,
+      { headers },
+    );
+    const children = resp.body.children;
+
+    const size = children.find((el) => el.name == "size").value;
+    const posVotes = children.find((el) => el.name == "positive_votes").value;
+    const negVotes = children.find((el) => el.name == "negative_votes").value;
+    const filename = children.find((el) => el.name == "name").value;
+    const desc = children.find((el) => el.name == "description").value;
+    const password = children.find((el) => el.name == "password");
+    const stripe = children.find((el) => el.name == "stripe")?.value;
+
+    const lang = extractLanguage(filename);
+    const parsedTitle = ptt.parse(filename);
+    const { title, season, episode } = parsedTitle;
+    const seasonEpisode =
+      season != null && episode != null
+        ? `S${String(season).padStart(2, "0")}E${String(episode).padStart(2, "0")}`
+        : "";
+    const name = `${title || filename} ${seasonEpisode}`;
+
+    const description =
+      filename +
+      (lang ? `\n🌐 ${lang}` : "") +
+      `\n👍 ${posVotes} 👎 ${negVotes}` +
+      `\n💾 ${filesize(size)}` +
+      `\n${desc}`;
+
+    return {
+      ident: id,
+      name,
+      filename,
+      description,
+      posVotes,
+      negVotes,
+      stripe,
+      size: parseInt(size, 10),
+      language: lang,
+      parsedTitle,
+      SeasonEpisode: extractSeasonEpisode(name),
+      protected: password && password.value == "1",
+    };
   },
 
   // improve movie query by adding year with movies
