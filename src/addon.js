@@ -25,6 +25,7 @@ const manifest = {
     {
       id: "direct",
       type: "movie",
+      name: "Webshare Files",
       extra: [{ name: "search", isRequired: true }],
     },
   ],
