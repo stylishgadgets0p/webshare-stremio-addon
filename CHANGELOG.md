@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- Add missing catalog name
+
 ## 0.6.0
 
 - Add direct search. The addon now provides catalog items as way to directly search files on
