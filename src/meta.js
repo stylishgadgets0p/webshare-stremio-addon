@@ -15,12 +15,23 @@ const findShowInfo = async (type, id) => {
   tmdbApiKey = tmdbPrivateKey || (await initFreeKeys());
   if (type == "movie") {
     return (
-      (await findMovieTmdb(type, id)) || (await findMovieCinemeta(type, id))
+      (await findMovieTmdbByImdb(type, id)) ||
+      (await findMovieCinemeta(type, id))
     );
   } else if (type == "series") {
     return (
-      (await findSeriesTmdb(type, id)) || (await findSeriesCinemeta(type, id))
+      (await findSeriesTmdbByImdb(type, id)) ||
+      (await findSeriesCinemeta(type, id))
     );
+  }
+};
+
+const findShowInfoInTmdb = async (type, id) => {
+  tmdbApiKey = tmdbPrivateKey || (await initFreeKeys());
+  if (type == "movie") {
+    return await findMovieTmdb(type, id);
+  } else if (type == "series") {
+    return await findSeriesTmdb(type, id);
   }
 };
 
@@ -60,7 +71,7 @@ const findSeriesCinemeta = async (type, id) => {
   }
 };
 
-const findMovieTmdb = async (type, id) => {
+const findMovieTmdbByImdb = async (type, id) => {
   const [resp, respSk] = await Promise.all([
     needle(
       "get",
@@ -105,7 +116,7 @@ const findMovieTmdb = async (type, id) => {
   }
 };
 
-const findSeriesTmdb = async (type, id) => {
+const findSeriesTmdbByImdb = async (type, id) => {
   const segments = id.split(":");
   if (segments.length == 3) {
     const [id, series, episode] = segments;
@@ -156,5 +167,101 @@ const findSeriesTmdb = async (type, id) => {
     }
   }
 };
+const findMovieTmdb = async (type, id) => {
+  const [resp, respSk] = await Promise.all([
+    needle(
+      "get",
+      `https://api.themoviedb.org/3/movie/${id}?api_key=${tmdbApiKey}&language=cs`,
+      null,
+      {},
+    ),
+    needle(
+      "get",
+      `https://api.themoviedb.org/3/movie/${id}?api_key=${tmdbApiKey}&language=sk`,
+      null,
+      {},
+    ),
+  ]);
 
-module.exports = { findShowInfo };
+  if (resp.statusCode == 200) {
+    const result = resp.body;
+    const resultSk = respSk?.body;
+    let resultEn = null;
+
+    //e.g. Naprostí cizinci.original_title = 'Perfetti sconosciuti' = not/not enough webshare search results
+    if (result?.original_language !== "en") {
+      const respEn = await needle(
+        "get",
+        `https://api.themoviedb.org/3/movie/${id}?api_key=${tmdbApiKey}`,
+        null,
+        {},
+      );
+      resultEn = respEn?.body;
+    }
+
+    if (result) {
+      return {
+        name: result.title,
+        nameSk: resultSk?.title,
+        nameEn: resultEn?.title,
+        originalName: result.original_title,
+        type,
+        year: result.release_date?.substring(0, 4),
+      };
+    }
+  }
+};
+
+const findSeriesTmdb = async (type, id) => {
+  const segments = id.split(":");
+  if (segments.length == 3) {
+    const [id, series, episode] = segments;
+    const [resp, respSk] = await Promise.all([
+      needle(
+        "get",
+        `https://api.themoviedb.org/3/tv/${id}?api_key=${tmdbApiKey}&language=cs`,
+        null,
+        {},
+      ),
+      needle(
+        "get",
+        `https://api.themoviedb.org/3/tv/${id}?api_key=${tmdbApiKey}&language=sk`,
+        null,
+        {},
+      ),
+    ]);
+
+    if (resp.statusCode == 200) {
+      const result = resp.body;
+      const resultSk = respSk?.body;
+      let resultEn = null;
+
+      //e.g. Squid Game.original_name = '오징어 게임' = not/not enough webshare search results
+      if (result?.original_language !== "en") {
+        const respEn = await needle(
+          "get",
+          `https://api.themoviedb.org/3/tv/${id}?api_key=${tmdbApiKey}`,
+          null,
+          {},
+        );
+
+        resultEn = respEn?.body;
+      }
+
+      if (result) {
+        return {
+          name: result.name,
+          nameSk: resultSk?.name,
+          nameEn: resultEn?.name,
+          originalName: result.original_name,
+          type,
+          series,
+          episode,
+          year: null,
+        };
+      }
+    }
+  }
+};
+
+module.exports = { findShowInfo, findShowInfoInTmdb };

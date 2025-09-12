@@ -1,7 +1,7 @@
 const pkg = require("../package.json");
 const { addonBuilder, getRouter } = require("stremio-addon-sdk");
 const webshare = require("./webshare");
-const { findShowInfo } = require("./meta");
+const { findShowInfo, findShowInfoInTmdb } = require("./meta");
 const express = require("express");
 const path = require("path");
 const landingTemplate = require("./html/landingTemplate");
@@ -14,7 +14,7 @@ const manifest = {
   id: "community.coffei.webshare" + dev,
   version: pkg.version,
   resources: [
-    { name: "stream", types, idPrefixes: ["tt", "coffei.webshare:"] },
+    { name: "stream", types, idPrefixes: ["tt", "coffei.webshare:", "tmdb:"] },
     { name: "catalog", types, idPrefixes: ["coffei.webshare:"] },
     { name: "meta", types, idPrefixes: ["coffei.webshare:"] },
   ],
@@ -87,6 +87,15 @@ builder.defineStreamHandler(async function (args) {
           },
         ],
       };
+    } else if (args.id.startsWith("tmdb:")) {
+      const id = args.id.substring(5);
+      const info = await findShowInfoInTmdb(args.type, id);
+      if (info) {
+        const wsToken = await getToken(args.config || {});
+        const streams = await webshare.search(info, wsToken);
+
+        return { streams: streams };
+      }
     } else {
       return { streams: [] };
     }
