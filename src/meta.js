@@ -1,4 +1,8 @@
-const tmdbPrivateKey = require("../config/keys").tmdbApiKey;
+let tmdbPrivateKey;
+try {
+  tmdbPrivateKey = require("../config/keys").tmdbApiKey;
+} catch (e) {}
+
 const needle = require("needle");
 let tmdbApiKey;
 
