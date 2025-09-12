@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0
+
+- Support locating streams for TMDB titles.
+
 ## 0.6.1
 
 - Add missing catalog name
