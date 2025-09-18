@@ -20,6 +20,7 @@ const manifest = {
   ],
   types: ["movie", "series"],
   name: "Webshare.cz" + dev,
+  logo: 'https://i.ibb.co/6cXfV88X/bbca535c67b97210a4661d66a1f5596f-400x400.png',
   description: "Simple webshare.cz search and streaming.",
   catalogs: [
     {
